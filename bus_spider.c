@@ -3,8 +3,6 @@
 
 #include "bus_spider.h"
 
-static uint32_t *gpio0_dirout = (uint32_t *)0x91000004;
-
 static struct mode *mode;
 static LIST_HEAD(mode_list);
 
@@ -73,38 +71,6 @@ static void version_info(void)
 	printf("Bus Spider v0\n");
 }
 
-static void pullup(int state)
-{
-	uint32_t *gpio0_dat = (uint32_t *)0x91000000;
-	uint32_t t;
-
-	t = readl(gpio0_dat);
-
-	if (state) {
-		t |= 0x40;
-	} else {
-		t &= ~0x40;
-	}
-
-	writel(t, gpio0_dat);
-}
-
-static void pwr3v3(int state)
-{
-	uint32_t *gpio0_dat = (uint32_t *)0x91000000;
-	uint32_t t;
-
-	t = readl(gpio0_dat);
-
-	if (state) {
-		t |= 0x80;
-	} else {
-		t &= ~0x80;
-	}
-
-	writel(t, gpio0_dat);
-}
-
 static void bus_spider(void)
 {
 	static char prompt[16];
@@ -145,46 +111,6 @@ static void bus_spider(void)
 			change_mode();
 			break;
 
-		case '#': /* Reset */
-		case '$':
-			{
-				void (*reboot)(void);
-
-				reboot = (void *)0x00000000;
-				reboot();
-			}
-			break;
-
-		case 'P':
-			pullup(1);
-			break;
-
-		case 'p':
-			pullup(0);
-			break;
-
-		case 'W':
-			pwr3v3(1);
-			break;
-
-		case 'w':
-			pwr3v3(0);
-			break;
-
-		case 'v':
-			{
-				const uint32_t *gpio0_dat = (uint32_t *)0x91000000;
-				const uint32_t *gpio0_dirout = (uint32_t *)0x91000004;
-				const uint32_t *gpio1_dat = (uint32_t *)0x91000100;
-				const uint32_t *gpio1_dirout = (uint32_t *)0x91000104;
-
-				printf("gpio0_dat    = %02x\n", 0xff & *gpio0_dat);
-				printf("gpio0_dirout = %02x\n\n", 0xff & *gpio0_dirout);
-				printf("gpio1_dat    = %02x\n", 0xff & *gpio1_dat);
-				printf("gpio1_dirout = %02x\n", 0xff & *gpio1_dirout);
-			}
-			break;
-
 		case 0:
 			stop = 1;
 			break;
@@ -217,19 +143,12 @@ static void bus_spider(void)
 void bus_spider_main(void)
 {
 	extern struct mode hiz_mode;
-	extern struct mode i2c_mode;
-	extern struct mode spi_mode;
 
 	uint32_t t;
 
 	register_mode(&hiz_mode);
-	register_mode(&i2c_mode);
-	register_mode(&spi_mode);
 
 	select_mode(&hiz_mode);
-
-	t = readl(gpio0_dirout);
-	writel(t | 0xc0, gpio0_dirout);
 
 	while (1) {
 		bus_spider();

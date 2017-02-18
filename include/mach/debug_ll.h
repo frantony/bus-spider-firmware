@@ -18,6 +18,23 @@
 #ifndef __MACH_ERIZO_DEBUG_LL__
 #define __MACH_ERIZO_DEBUG_LL__
 
+#include <libopencm3/stm32/usart.h>
+
+static const uint32_t usart_ll = USART1;
+
+static inline void PUTC_LL(char ch)
+{
+#ifdef CONFIG_DEBUG_LL
+	usart_send_blocking(usart_ll, ch);
+#endif /* CONFIG_DEBUG_LL */
+}
+
+static inline char GETC_LL()
+{
+	return usart_recv_blocking(usart_ll);
+}
+
+#if 0
 /** @file
  *  This File contains declaration for early output support
  */
@@ -34,5 +51,6 @@
 #define DEBUG_LL_UART_DIVISOR   (DEBUG_LL_UART_CLK / DEBUG_LL_UART_BPS)
 
 #include <asm/debug_ll_ns16550.h>
+#endif
 
 #endif /* __MACH_ERIZO_DEBUG_LL__ */

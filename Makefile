@@ -2,47 +2,59 @@
 
 BINARY = bus_spider
 
-all: $(BINARY).bin
+all: $(BINARY)
 .PHONY: all
 
 SRCFILES = \
-	arch/riscv/startup.S \
-	main.c \
 	common/tlsf.c common/tlsf_malloc.c common/memory.c \
+	freertos/heap_4.c freertos/list.c freertos/port.c \
+	freertos/queue.c freertos/tasks.c freertos/opencm3.c \
 	common/console_common.c \
 	lib/ctype.c lib/string.c lib/strtox.c lib/vsprintf.c \
 	lib/readkey.c lib/readline.c \
-	common/clock.c \
-	arch/riscv/riscv_timer.c \
-	arch/riscv/div.S \
-	lib/div64.c lib/clz_ctz.c \
-	lib/ashldi3.c lib/lshrdi3.c lib/muldi3.c lib/mulsi3.c \
-	common/memtest.c \
+	lib/div64.c \
 	lib/xfuncs.c \
 	lib/libbb.c \
 	bus_spider.c \
-	hiz_mode.c \
-	i2c-algo-bit.c \
-	i2c_mode.c i2c0.c \
-	spi_mode.c spi0.c
+	hiz_mode.c
 
-CROSS_COMPILE = /opt/riscv32imc/bin/riscv32-unknown-elf-
+CROSS_COMPILE = arm-none-eabi-
 
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 SIZE = $(CROSS_COMPILE)size
-GDB = $(CROSS_COMPILE)gdb
 
-QEMU = /opt/riscv/bin/qemu-system-riscv32
+QEMU = qemu-system-arm
 
 TOP_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-OBJST1 = $(patsubst %.c,%.o,$(SRCFILES))
-OBJS = $(patsubst %.S,%.o,$(OBJST1))
+MCU=stm32f103
+#MCU=stm32f205
 
-CFLAGS += -march=rv32imc
-CFLAGS += -mcmodel=medany
+OPENCM3_DIR = $(TOP_DIR)/libopencm3
+
+ifeq ($(MCU),stm32f103)
+LIBOPENCM3_TARGETS=stm32/f1
+LDSCRIPT = $(OPENCM3_DIR)/lib/stm32/f1/stm32f103x8.ld
+LIBOPENCM3_AFILE=$(OPENCM3_DIR)/lib/libopencm3_stm32f1.a
+LIBOPENCM3_LDFLAG=-lopencm3_stm32f1
+CFLAGS += -DSTM32F1
+SRCFILES += main_stm32f103.c
+endif
+
+ifeq ($(MCU),stm32f205)
+LIBOPENCM3_TARGETS=stm32/f2
+LDSCRIPT = $(OPENCM3_DIR)/lib/stm32/f1/stm32f103x8.ld
+LIBOPENCM3_AFILE=$(OPENCM3_DIR)/lib/libopencm3_stm32f2.a
+LIBOPENCM3_LDFLAG=-lopencm3_stm32f2
+CFLAGS += -DSTM32F2
+SRCFILES += main_stm32f205.c
+endif
+
+OBJS = $(patsubst %.c,%.o,$(SRCFILES))
+
+CFLAGS += -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 
 CFLAGS += -Os
 CFLAGS += -g
@@ -54,7 +66,9 @@ CFLAGS += -W -Wall -Wundef
 CFLAGS += -Wextra -Wshadow -Wimplicit-function-declaration
 CFLAGS += -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes
 CFLAGS += -nostdinc
+CFLAGS += -I$(OPENCM3_DIR)/include
 CFLAGS += -I$(TOP_DIR)/include
+CFLAGS += -I$(TOP_DIR)/freertos
 CFLAGS += -isystem $(shell $(CC) -print-file-name=include)
 
 CFLAGS += -fno-pic
@@ -62,24 +76,30 @@ CFLAGS += -fno-builtin
 CFLAGS += -fno-common
 CFLAGS += -ffunction-sections -fdata-sections
 
-LDFLAGS=
+LDFLAGS += -static --no-dynamic-linker
+LDFLAGS += -nostartfiles
+LDFLAGS += --gc-sections
 
-LDSCRIPT = embedded.lds
+$(LIBOPENCM3_AFILE):
+	$(MAKE) -C $(OPENCM3_DIR) TARGETS=$(LIBOPENCM3_TARGETS)
 
-embedded.lds: embedded.lds.S
-	$(CC) $(CFLAGS) -E $< | grep -v "^#" > $@
+clean_libopencm3:
+	$(RM) -f $(LIBOPENCM3_AFILE)
+	-$(MAKE) -$(MAKEFLAGS) -C $(OPENCM3_DIR) clean
+.PHONY: clean_libopencm3
 
-$(BINARY): $(OBJS) $(LDSCRIPT)
+LDLIBS += -nostdlib
+LDLIBS += -L$(OPENCM3_DIR)/lib $(LIBOPENCM3_LDFLAG)
+
+$(BINARY): $(LIBOPENCM3_AFILE) $(OBJS) $(LDSCRIPT)
 	$(LD) \
 		-Map $@.map \
-		-nostdlib --no-dynamic-linker -static --gc-sections \
-		-o $@ \
+		--start-group $(OBJS) --end-group \
+		$(LDFLAGS) \
+		$(LDLIBS) \
 		-T $(LDSCRIPT) \
-		--start-group $(OBJS) --end-group
+		-o $@
 	$(SIZE) $@
-
-%.o: %.S
-	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -87,20 +107,13 @@ $(BINARY): $(OBJS) $(LDSCRIPT)
 %.bin: %
 	$(OBJCOPY) --output-target binary $< $@
 
-$(BINARY).nmon: $(BINARY).bin
-	./erizo-nmon-image $< $@
-
-clean:
+clean: clean_libopencm3
 	$(RM) -f $(OBJS) $(patsubst %.o,%.d,$(OBJS))
-	$(RM) -f $(BINARY) $(BINARY).bin embedded.lds $(BINARY).map $(BINARY).nmon
+	$(RM) -f $(BINARY) $(BINARY).bin *.list *.map
 .PHONY: clean
 
 run: $(BINARY).bin
-	$(QEMU) -nographic -M erizo -bios ./$(BINARY).bin -serial stdio -monitor none
+	$(QEMU) -nographic -M netduino2 -kernel $< -serial stdio -monitor none
 .PHONY: run
-
-dbg: $(BINARY).bin
-	$(GDB) -x conf.gdb
-.PHONY: dbg
 
 -include $(OBJS:.o=.d)
