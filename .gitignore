@@ -1,0 +1,8 @@
+*.o
+embedded.lds
+hello_world
+hello_world.bin
+hello_world.map
+hello_world.nmon
+tags
+trace-*

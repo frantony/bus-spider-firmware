@@ -1,0 +1,10 @@
+A free and open-source firmware library for Erizo RISC-V SoC.
+
+Copyright (C) 2017 Antony Pavlov <antonynpavlov@gmail.com>
+
+This library is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2,
+see the COPYING file for details.
+
+Library's source code is based on barebox bootloader sources.
+See https://www.barebox.org/ for details.
