@@ -17,7 +17,7 @@ all: hello_world.bin
 .PHONY: all
 
 clean:
-	@rm -f hello_world *.o *.bin embedded.lds
+	@rm -f hello_world *.o *.bin embedded.lds hello_world.map hello_world.nmon
 .PHONY: clean
 
 hello_world.bin: hello_world
