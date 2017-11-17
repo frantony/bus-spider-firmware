@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Antony Pavlov <antonynpavlov@gmail.com>
+ * Copyright (C) 2017 Antony Pavlov <antonynpavlov@gmail.com>
  *
  * This file is part of barebox.
  * See file CREDITS for list of people who contributed to this project.
@@ -22,39 +22,36 @@ ENTRY(_start)
 SECTIONS
 {
 	. = TEXT_BASE;
-
-	. = ALIGN(8);
-	.text      :
-	{
-		_stext = .;
-		_start = .;
+	PROVIDE(_start = .);
+	_stext = .;
+	.text : {
 		KEEP(*(.text_entry*))
-		_text = .;
 		KEEP(*(.main_entry*))
 		*(.text*)
 	}
 
-	. = ALIGN(8);
-	.rodata : { *(.rodata*) }
+	. = ALIGN(4);
+	.rodata : {
+		*(.rodata*)
+	}
+	_etext = .;
 
-	_etext = .;			/* End of text and rodata section */
+	. = ALIGN(4);
 	_sdata = .;
-
-	. = ALIGN(8);
-	.data : { *(.data*) }
-
-	. = ALIGN(8);
-	.got : { *(.got*) }
-
-	. = .;
-
-	.rela.dyn : { *(.rela*) }
-
+	.data : {
+		*(.data*)
+	}
 	_edata = .;
-	. = STACK_BASE + 0x1;
-	. = ALIGN(8);
-	__bss_start = .;
-	.bss : { *(.bss*) *(.sbss*) }
-	__bss_stop = .;
+
+	. = ALIGN(4);
+	PROVIDE(__bss_start = .);
+	.sbss : {
+		*(.sbss*)
+	}
+	.bss : {
+		*(.bss*)
+	}
+	PROVIDE(__bss_stop = .);
+
 	_end = .;
 }

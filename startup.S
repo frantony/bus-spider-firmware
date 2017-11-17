@@ -1,33 +1,21 @@
-/* vim: sw=8:et:ai
-*/
-
 #include <config.h>
 
-        /* поместим идущие ниже команды в сегмент text */
-        .section ".text_entry"
-        /* метка _start глобальная (будет использована компоновщиком) */
-        .globl _start
+	.section ".text_entry"
 
-_start:
-__start:
-        li sp, STACK_BASE + STACK_SIZE
+	li	sp, STACK_BASE + STACK_SIZE
 
-        # make room for HLS and initialize it
-        addi sp, sp, -64 /* MENTRY_FRAME_SIZE */
+	/* poison the stack */
+	li	t1, STACK_BASE
+	li	t0, 0xdeadbeef
+	sw	t0, 0(t1)
 
-        # poison the stack
-        li t1, STACK_BASE
-        li t0, 0xdeadbeef
-        sw t0, 0(t1)
-
-	/* copy barebox to link location */
-
-	la	a0, __start	/* a0 <- _start actual address */
-	li	a1, TEXT_BASE	/* a1 <- _start link address */
-
-	beq	a0, a1, resume
+	/* copy to link location */
+	la	a0, _start	/* a0 <- __start actual address */
+	li	a1, TEXT_BASE	/* a1 <- __start link address */
 
 	la	a2, __bss_start
+
+	beq	a0, a1, clear_bss
 
 #define LONGSIZE 4
 
@@ -52,5 +40,16 @@ copy_loop:
 
 	li	a0, TEXT_BASE
 	jalr	a0
+
+clear_bss:
+	la	a0, __bss_stop
+
+	beq     a2, a0, resume
+
+clear_bss_loop:
+	sb      zero, 0(a2)
+	addi    a2, a2, 1
+
+	bne     a2, a0, clear_bss_loop
 
 resume:
