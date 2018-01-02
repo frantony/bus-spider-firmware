@@ -26,6 +26,8 @@ int vprintf(const char *fmt, va_list args);
 
 int printf(const char *fmt, ...) __attribute__ ((format(__printf__, 1, 2)));
 
+int readline(const char *prompt, char *buf, int len);
+
 #include <config.h>
 #include <debug_ll.h>
 

@@ -30,6 +30,7 @@ embedded.lds: embedded.lds.S
 hello_world: startup.o main.o \
 		tlsf.o tlsf_malloc.o memory.o \
 		ctype.o string.o strtox.o vsprintf.o console_common.o \
+		readkey.o readline.o \
 		clock.o riscv_timer.o \
 		div.o div64.o clz_ctz.o mulsi3.o muldi3.o
 	$(LD) \
