@@ -46,4 +46,9 @@ static inline int putchar(int c)
 	return c;
 }
 
+static inline int getchar(void)
+{
+	return getc_ll();
+}
+
 #endif /* __STDIO_H */
