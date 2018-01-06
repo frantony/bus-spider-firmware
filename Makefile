@@ -1,5 +1,5 @@
 # Makefile for hello_world for erizo board
-CROSS_COMPILE=/opt/riscv32i/bin/riscv32-unknown-elf-
+CROSS_COMPILE=/opt/riscv32imc/bin/riscv32-unknown-elf-
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
@@ -7,7 +7,7 @@ GDB=$(CROSS_COMPILE)gdb
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
-CFLAGS=-march=rv32i -nostdlib -fno-builtin -fno-pic -W -Wall -Iinclude -D__KERNEL__ -D__BAREBOX__ -g -O2 $(NOSTDINC_FLAGS) -ffunction-sections -fdata-sections -mcmodel=medany
+CFLAGS=-march=rv32imc -nostdlib -fno-builtin -fno-pic -W -Wall -Iinclude -D__KERNEL__ -D__BAREBOX__ -g -O2 $(NOSTDINC_FLAGS) -ffunction-sections -fdata-sections -mcmodel=medany
 LDFLAGS=
 
 QEMU=/opt/riscv/bin/qemu-system-riscv32
