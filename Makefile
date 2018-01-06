@@ -10,7 +10,7 @@ NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CFLAGS=-march=rv32i -nostdlib -fno-builtin -fno-pic -W -Wall -Iinclude -D__KERNEL__ -D__BAREBOX__ -g -O2 $(NOSTDINC_FLAGS) -ffunction-sections -fdata-sections -mcmodel=medany
 LDFLAGS=
 
-QEMU=/opt/riscv-qemu/bin/qemu-system-riscv32
+QEMU=/opt/riscv/bin/qemu-system-riscv32
 
 
 all: hello_world.bin
@@ -32,7 +32,8 @@ hello_world: startup.o main.o \
 		ctype.o string.o strtox.o vsprintf.o console_common.o \
 		readkey.o readline.o \
 		clock.o riscv_timer.o \
-		div.o div64.o clz_ctz.o mulsi3.o muldi3.o
+		div.o div64.o clz_ctz.o mulsi3.o muldi3.o \
+		memtest.o
 	$(LD) \
 		-Map $@.map \
 		-nostdlib --no-dynamic-linker -static --gc-sections \
