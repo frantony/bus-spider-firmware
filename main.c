@@ -8,10 +8,10 @@ extern void mem_malloc_init(void *start, void *end);
 
 extern int rdcycle_cs_init(unsigned int cycle_frequency);
 
-int __section(.main_entry) main(void)
-{
-	int i;
+int main(void);
 
+int __section(.main_entry) constructor(void)
+{
 	mem_malloc_init((void *)MALLOC_BASE,
 			(void *)(MALLOC_BASE + MALLOC_SIZE - 1));
 
@@ -22,6 +22,16 @@ int __section(.main_entry) main(void)
 	/* erizo: CPU freq = 24 MHz */
 	rdcycle_cs_init(24000000);
 #endif
+
+	main();
+
+	for (;;)
+		;
+}
+
+int main(void)
+{
+	int i;
 
 	for (i = 0;;i++) {
 		printf("%d: %Ld: Hello world!\n", i, get_time_ns());
