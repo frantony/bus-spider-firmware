@@ -19,6 +19,7 @@ int __section(.main_entry) constructor(void)
 
 	mem_malloc_init((void *)MALLOC_BASE,
 			(void *)(MALLOC_BASE + MALLOC_SIZE - 1));
+	malloc_stats();
 
 #if 0
 	/* QEMU: CPU freq = 1 GHz */
