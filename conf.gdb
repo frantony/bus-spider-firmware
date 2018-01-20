@@ -6,5 +6,5 @@ set architecture riscv:rv32
 set disassemble-next-line on
 set riscv use_compressed_breakpoint off
 
-file hello_world
+file bus_spider
 target remote :1234

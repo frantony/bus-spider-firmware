@@ -35,14 +35,11 @@ int __section(.main_entry) constructor(void)
 		;
 }
 
+extern void bus_spider_main(void);
+
 int main(void)
 {
-	int i;
-
-	for (i = 0;;i++) {
-		printf("%d: %Ld: Hello world!\n", i, get_time_ns());
-		mdelay(1000);
-	}
+	bus_spider_main();
 
 	return 0;
 }

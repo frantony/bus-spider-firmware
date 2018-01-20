@@ -1,4 +1,4 @@
-# Makefile for hello_world for erizo board
+# Makefile for Bus Spider firmware for erizo board
 CROSS_COMPILE=/opt/riscv32imc/bin/riscv32-unknown-elf-
 
 CC=$(CROSS_COMPILE)gcc
@@ -27,28 +27,29 @@ CFLAGS += -g
 LDFLAGS=
 
 
-all: hello_world.bin
+all: bus_spider.bin
 .PHONY: all
 
 clean:
-	@rm -f hello_world *.o *.bin embedded.lds hello_world.map hello_world.nmon
+	@rm -f bus_spider *.o *.bin embedded.lds bus_spider.map bus_spider.nmon
 .PHONY: clean
 
-hello_world.bin: hello_world
+bus_spider.bin: bus_spider
 	$(OBJCOPY) --output-target binary $< $@
 
-hello_world: embedded.lds
+bus_spider: embedded.lds
 embedded.lds: embedded.lds.S
 	$(CC) $(CFLAGS) -E $< | grep -v "^#" > $@
 
-hello_world: startup.o main.o \
+bus_spider: startup.o main.o \
 		tlsf.o tlsf_malloc.o memory.o \
 		ctype.o string.o strtox.o vsprintf.o console_common.o \
 		readkey.o readline.o \
 		clock.o riscv_timer.o \
 		div.o div64.o clz_ctz.o mulsi3.o muldi3.o ashldi3.o lshrdi3.o \
 		memtest.o \
-		i2c-algo-bit.o
+		i2c-algo-bit.o \
+		i2c0.o bus_spider.o
 	$(LD) \
 		-Map $@.map \
 		-nostdlib --no-dynamic-linker -static --gc-sections \
@@ -62,13 +63,13 @@ hello_world: startup.o main.o \
 %.o: %.c
 	$(CC) -c $(CFLAGS) $<
 
-hello_world.nmon: hello_world.bin
+bus_spider.nmon: bus_spider.bin
 	./erizo-nmon-image $< $@
 
-run: hello_world.bin
-	$(QEMU) -nographic -M erizo -bios ./hello_world.bin -serial stdio -monitor none
+run: bus_spider.bin
+	$(QEMU) -nographic -M erizo -bios ./bus_spider.bin -serial stdio -monitor none
 .PHONY: run
 
-dbg: hello_world.bin
+dbg: bus_spider.bin
 	$(GDB) -x conf.gdb
 .PHONY: dbg

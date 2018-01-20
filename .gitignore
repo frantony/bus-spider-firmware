@@ -1,8 +1,8 @@
 *.o
 embedded.lds
-hello_world
-hello_world.bin
-hello_world.map
-hello_world.nmon
+bus_spider
+bus_spider.bin
+bus_spider.map
+bus_spider.nmon
 tags
 trace-*

@@ -1,10 +1,20 @@
-A free and open-source firmware library for Erizo RISC-V SoC.
+Bus Spider firmware
+===================
 
-Copyright (C) 2017 Antony Pavlov <antonynpavlov@gmail.com>
+Bus Spider — a better tool for DIY and hacking projects
+that involve serial communications.
 
-This library is free software: you can redistribute it and/or modify
+Bus Spider is inspired and heavely influenced by
+Bus Pirate (http://dangerousprototypes.com/docs/Bus_Pirate).
+
+Copyright (C) 2017, 2018 Antony Pavlov <antonynpavlov@gmail.com>
+
+This firmware is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2,
 see the COPYING file for details.
 
-Library's source code is based on barebox bootloader sources.
+Bus Spider firmware's source code is based on barebox bootloader sources.
 See https://www.barebox.org/ for details.
+
+Bus Spider firmware runs on Erizo SoC.
+See https://github.com/open-design/riscv-soc-cores for details.
