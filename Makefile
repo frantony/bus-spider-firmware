@@ -47,7 +47,8 @@ hello_world: startup.o main.o \
 		readkey.o readline.o \
 		clock.o riscv_timer.o \
 		div.o div64.o clz_ctz.o mulsi3.o muldi3.o ashldi3.o lshrdi3.o \
-		memtest.o
+		memtest.o \
+		i2c-algo-bit.o
 	$(LD) \
 		-Map $@.map \
 		-nostdlib --no-dynamic-linker -static --gc-sections \
