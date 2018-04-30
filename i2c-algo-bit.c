@@ -257,3 +257,45 @@ int try_address(struct i2c_algo_bit_data *adap,
 			ret == 1 ? "success" : "failed, timeout?");
 	return ret;
 }
+
+static int acknak(struct i2c_algo_bit_data *adap, int is_ack)
+{
+	/* assert: sda is high */
+	if (is_ack)		/* send ack */
+		setsda(adap, 0);
+	udelay((adap->udelay + 1) / 2);
+	if (sclhi(adap) < 0) {	/* timeout */
+		dev_err(&i2c_adap->dev, "readbytes: ack/nak timeout\n");
+		return -ETIMEDOUT;
+	}
+	scllo(adap);
+	return 0;
+}
+
+int readbytes(struct i2c_algo_bit_data *i2c_adap, unsigned char *buf, int count)
+{
+	int inval;
+	int rdcount = 0;	/* counts bytes read */
+	unsigned char *temp = buf;
+
+	while (count > 0) {
+		inval = i2c_inb(i2c_adap);
+		if (inval >= 0) {
+			*temp = inval;
+			rdcount++;
+		} else {   /* read timed out */
+			break;
+		}
+
+		temp++;
+		count--;
+
+		bit_dbg(2, &i2c_adap->dev, "readbytes: 0x%02x %s\n",
+			inval, count ? "A" : "NA");
+
+		inval = acknak(i2c_adap, count);
+		if (inval < 0)
+			return inval;
+	}
+	return rdcount;
+}

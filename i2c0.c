@@ -4,8 +4,8 @@
 
 static const uint32_t *i2c0_gpio_dat = (uint32_t *)0x91000000;
 static const uint32_t *i2c0_gpio_dirout = (uint32_t *)0x91000004;
-static const uint32_t i2c0_gpio_sda_mask = 0x80;
-static const uint32_t i2c0_gpio_scl_mask = 0x40;
+static const uint32_t i2c0_gpio_sda_mask = 0x20;
+static const uint32_t i2c0_gpio_scl_mask = 0x10;
 
 /* Toggle SDA by changing the direction of the pin */
 static void i2c0_gpio_setsda_dir(void *data, int state)

@@ -6,16 +6,28 @@ static struct i2c_algo_bit_data *i2c0;
 
 static void print_help(void)
 {
-	printf(" General\t\t\t\t\tProtocol interaction\n");
+	printf(" General\t\t\t\tProtocol interaction\n");
 	printf(" ---------------------------------------------------------------------------\n");
-	printf(" ?\tThis help\t\t\t\tS\tI2C 7bit address search\n");
-	printf(" i\tVersioninfo/statusinfo\n");
+	printf(" ?\tThis help\t\t\t"            "S\tI2C 7bit address search\n");
+	printf(" $\tJump to bootloader\t\t"     "[\tStart\n");
+	printf(" i\tVersioninfo/statusinfo\t\t" "]\tStop\n");
+	printf("  \t\t\t\t\t"                   "r\tRead\n");
 }
 
 static void version_info(void)
 {
 	printf("Bus Spider v0\n");
 }
+
+extern void i2c_start(struct i2c_algo_bit_data *adap);
+extern void i2c_stop(struct i2c_algo_bit_data *adap);
+extern int i2c_inb(struct i2c_algo_bit_data *adap);
+extern int i2c_outb(struct i2c_algo_bit_data *adap, unsigned char c);
+extern int try_address(struct i2c_algo_bit_data *adap,
+			unsigned char addr, int retries);
+extern int readbytes(struct i2c_algo_bit_data *i2c_adap, unsigned char *buf, int count);
+
+extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
 
 static void i2c_scan(struct i2c_algo_bit_data *adap, int min, int max)
 {
@@ -55,6 +67,8 @@ static void i2c_scan(struct i2c_algo_bit_data *adap, int min, int max)
 			printf("\n");
 		}
 	}
+
+	i2c_stop(adap);
 }
 
 static void bus_spider(void)
@@ -85,12 +99,74 @@ static void bus_spider(void)
 			version_info();
 			break;
 
+		case '#': /* Reset */
+		case '$':
+			{
+				void (*reboot)(void);
+
+				reboot = (void *)0x00000000;
+				reboot();
+			}
+			break;
+
 		case 'S':
 			i2c_scan(i2c0, 0x01, 0x77);
 			break;
 
+		case '[':
+			i2c_start(i2c0);
+			printf("I2C START BIT\n");
+			break;
+
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			{
+				unsigned int t;
+				int ack;
+				char *endp;
+
+				t = simple_strtoul(curchar, &endp, 0);
+				t &= 0xff;
+
+				ack = i2c_outb(i2c0, t);
+
+				curchar = endp;
+
+				printf("WRITE: 0x%02x %sACK\n", t, ack ? "" : "N");
+			}
+			break;
+
+		case 'r':
+			{
+				unsigned char buf;
+				int ret;
+
+				ret = readbytes(i2c0, &buf, 1);
+
+				printf("READ: 0x%02x\n%sACK\n", buf,
+						(ret > 0) ? "N" : "");
+			}
+			break;
+
+		case ']':
+			i2c_stop(i2c0);
+			printf("I2C STOP BIT\n");
+			break;
+
 		case 0:
 			stop = 1;
+			break;
+
+		/* skip spaces */
+		case ' ':
 			break;
 
 		default:
