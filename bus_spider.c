@@ -11,7 +11,7 @@ static void print_help(void)
 	printf(" ?\tThis help\t\t\t"            "S\tI2C 7bit address search\n");
 	printf(" $\tJump to bootloader\t\t"     "[\tStart\n");
 	printf(" i\tVersioninfo/statusinfo\t\t" "]\tStop\n");
-	printf("  \t\t\t\t\t"                   "r\tRead\n");
+	printf(" v\tShow states\t\t\t"          "r\tRead\n");
 }
 
 static void version_info(void)
@@ -153,6 +153,20 @@ static void bus_spider(void)
 
 				printf("READ: 0x%02x\n%sACK\n", buf,
 						(ret > 0) ? "N" : "");
+			}
+			break;
+
+		case 'v':
+			{
+				const uint32_t *gpio0_dat = (uint32_t *)0x91000000;
+				const uint32_t *gpio0_dirout = (uint32_t *)0x91000004;
+				const uint32_t *gpio1_dat = (uint32_t *)0x91000100;
+				const uint32_t *gpio1_dirout = (uint32_t *)0x91000104;
+
+				printf("gpio0_dat    = %02x\n", 0xff & *gpio0_dat);
+				printf("gpio0_dirout = %02x\n\n", 0xff & *gpio0_dirout);
+				printf("gpio1_dat    = %02x\n", 0xff & *gpio1_dat);
+				printf("gpio1_dirout = %02x\n", 0xff & *gpio1_dirout);
 			}
 			break;
 
