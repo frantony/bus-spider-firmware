@@ -44,6 +44,8 @@ struct i2c_algo_bit_data {
 				   minimum 5 us for standard-mode I2C and SMBus,
 				   maximum 50 us for SMBus */
 	int timeout_ms;		/* in ms */
+
+	int ack_pending;
 };
 
 #endif /* _LINUX_I2C_ALGO_BIT_H */

@@ -4,6 +4,11 @@
 
 static struct i2c_algo_bit_data *i2c0;
 
+void i2c_proto_start(struct i2c_algo_bit_data *adap);
+void i2c_proto_stop(struct i2c_algo_bit_data *adap);
+int i2c_proto_read(struct i2c_algo_bit_data *adap);
+int i2c_proto_write(struct i2c_algo_bit_data *adap, unsigned char c);
+
 static void print_help(void)
 {
 	printf(" General\t\t\t\tProtocol interaction\n");
@@ -21,11 +26,8 @@ static void version_info(void)
 
 extern void i2c_start(struct i2c_algo_bit_data *adap);
 extern void i2c_stop(struct i2c_algo_bit_data *adap);
-extern int i2c_inb(struct i2c_algo_bit_data *adap);
-extern int i2c_outb(struct i2c_algo_bit_data *adap, unsigned char c);
 extern int try_address(struct i2c_algo_bit_data *adap,
 			unsigned char addr, int retries);
-extern int readbytes(struct i2c_algo_bit_data *i2c_adap, unsigned char *buf, int count);
 
 extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
 
@@ -114,8 +116,7 @@ static void bus_spider(void)
 			break;
 
 		case '[':
-			i2c_start(i2c0);
-			printf("I2C START BIT\n");
+			i2c_proto_start(i2c0);
 			break;
 
 		case '0':
@@ -130,30 +131,19 @@ static void bus_spider(void)
 		case '9':
 			{
 				unsigned int t;
-				int ack;
 				char *endp;
 
 				t = simple_strtoul(curchar, &endp, 0);
 				t &= 0xff;
 
-				ack = i2c_outb(i2c0, t);
+				i2c_proto_write(i2c0, t);
 
 				curchar = endp;
-
-				printf("WRITE: 0x%02x %sACK\n", t, ack ? "" : "N");
 			}
 			break;
 
 		case 'r':
-			{
-				unsigned char buf;
-				int ret;
-
-				ret = readbytes(i2c0, &buf, 1);
-
-				printf("READ: 0x%02x\n%sACK\n", buf,
-						(ret > 0) ? "N" : "");
-			}
+			i2c_proto_read(i2c0);
 			break;
 
 		case 'v':
@@ -171,8 +161,7 @@ static void bus_spider(void)
 			break;
 
 		case ']':
-			i2c_stop(i2c0);
-			printf("I2C STOP BIT\n");
+			i2c_proto_stop(i2c0);
 			break;
 
 		case 0:

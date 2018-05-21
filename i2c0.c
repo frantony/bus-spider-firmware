@@ -90,5 +90,7 @@ struct i2c_algo_bit_data *init_i2c0(void)
 	i2c0.udelay = 50;
 	i2c0.timeout_ms = 10;
 
+	i2c0.ack_pending = 0;
+
 	return &i2c0;
 }

@@ -49,6 +49,7 @@ bus_spider: startup.o main.o \
 		div.o div64.o clz_ctz.o mulsi3.o muldi3.o ashldi3.o lshrdi3.o \
 		memtest.o \
 		i2c-algo-bit.o \
+		bp-i2c.o \
 		i2c0.o bus_spider.o
 	$(LD) \
 		-Map $@.map \
