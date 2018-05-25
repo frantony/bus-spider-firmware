@@ -3,6 +3,8 @@
 #include <clock.h>
 #include <i2c/i2c-algo-bit.h>
 
+#include "bus_spider.h"
+
 #define dev_err(dev, format, arg...)		\
 	printf(format , ## arg)
 
@@ -167,3 +169,131 @@ int i2c_proto_write(struct i2c_algo_bit_data *adap, unsigned char c)
 
 	return ack;
 }
+
+static struct i2c_algo_bit_data *i2c0;
+
+extern void i2c_start(struct i2c_algo_bit_data *adap);
+extern void i2c_stop(struct i2c_algo_bit_data *adap);
+extern int try_address(struct i2c_algo_bit_data *adap,
+			unsigned char addr, int retries);
+
+static void i2c_print_help(void)
+{
+	printf(" S\tI2C 7bit address search\n");
+	printf(" [\tStart\n");
+	printf(" ]\tStop\n");
+	printf(" r\tRead\n");
+}
+
+extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
+
+static void i2c_scan(struct i2c_algo_bit_data *adap, int min, int max)
+{
+	uint8_t i;
+
+	printf("\n");
+	printf("   ");
+	for (i = 0; i < 0x10 ; i++) {
+		printf("  %1x", i);
+	}
+	printf("\n");
+
+	for (i = 0; ; i++) {
+		if (i % 0x10 == 0x00) {
+			printf("%02x: ", i);
+		}
+
+		if (i < (min << 1)) {
+			printf("   ");
+			continue;
+		}
+
+		i2c_stop(adap);
+		i2c_start(adap);
+		if (try_address(adap, i << 1, 1)) {
+			printf("%02x ", i);
+		} else {
+			printf("-- ");
+		}
+
+		if (i == max) {
+			printf("\n");
+			break;
+		}
+
+		if (i % 0x10 == 0xf) {
+			printf("\n");
+		}
+	}
+
+	i2c_stop(adap);
+}
+
+static char *i2c_parse_cmdline(char *curchar)
+{
+	char c;
+
+	c = *curchar;
+
+	switch (c) {
+
+	case 'S':
+		i2c_scan(i2c0, 0x01, 0x77);
+		break;
+
+	case '[':
+		i2c_proto_start(i2c0);
+		break;
+
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+		{
+			unsigned int t;
+			char *endp;
+
+			t = simple_strtoul(curchar, &endp, 0);
+			t &= 0xff;
+
+			i2c_proto_write(i2c0, t);
+
+			curchar = endp;
+		}
+		break;
+
+	case 'r':
+		i2c_proto_read(i2c0);
+		break;
+
+	case ']':
+		i2c_proto_stop(i2c0);
+		break;
+
+	default:
+		return NULL;
+	}
+
+	return curchar;
+}
+
+extern struct i2c_algo_bit_data *init_i2c0(void);
+
+static void i2c_open(void)
+{
+	i2c0 = init_i2c0();
+}
+
+struct mode i2c_mode = {
+	.name = "I2C",
+	.open = i2c_open,
+	.close = NULL,
+	.parse_cmdline = i2c_parse_cmdline,
+	.print_help = i2c_print_help,
+};

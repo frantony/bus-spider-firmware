@@ -1,22 +1,67 @@
 #include <stdio.h>
 #include <string.h>
-#include <i2c/i2c-algo-bit.h>
 
-static struct i2c_algo_bit_data *i2c0;
+#include "bus_spider.h"
 
-void i2c_proto_start(struct i2c_algo_bit_data *adap);
-void i2c_proto_stop(struct i2c_algo_bit_data *adap);
-int i2c_proto_read(struct i2c_algo_bit_data *adap);
-int i2c_proto_write(struct i2c_algo_bit_data *adap, unsigned char c);
+static struct mode *mode;
+static LIST_HEAD(mode_list);
+
+static int register_mode(struct mode *new_mode)
+{
+	list_add_tail(&new_mode->list, &mode_list);
+
+	return 0;
+}
+
+static void select_mode(struct mode *new_mode)
+{
+	mode = new_mode;
+	if (mode->open)
+		mode->open();
+}
+
+static void change_mode(void)
+{
+	struct mode *t;
+	int i;
+	char modebuf[8];
+	unsigned int moden;
+
+	i = 1;
+	list_for_each_entry(t, &mode_list, list) {
+		printf(" %d. %s\n", i, t->name);
+		i++;
+	}
+
+	readline(">>> ", modebuf, sizeof(modebuf));
+
+	moden = simple_strtoul(modebuf, NULL, 0);
+
+	i = 1;
+	list_for_each_entry(t, &mode_list, list) {
+		if (i == moden) {
+			printf("  %s mode selected\n", t->name);
+			select_mode(t);
+		}
+		i++;
+	}
+}
 
 static void print_help(void)
 {
-	printf(" General\t\t\t\tProtocol interaction\n");
-	printf(" ---------------------------------------------------------------------------\n");
-	printf(" ?\tThis help\t\t\t"            "S\tI2C 7bit address search\n");
-	printf(" $\tJump to bootloader\t\t"     "[\tStart\n");
-	printf(" i\tVersioninfo/statusinfo\t\t" "]\tStop\n");
-	printf(" v\tShow states\t\t\t"          "r\tRead\n");
+	printf(" General\n");
+	printf(" ---------------------------------------\n");
+	printf(" ?\tThis help\n");
+	printf(" m\tChange mode\n");
+	printf(" $\tJump to bootloader\n");
+	printf(" i\tVersioninfo/statusinfo\n");
+	printf(" v\tShow states\n");
+
+	if (mode->print_help) {
+		printf("\n %s Protocol interaction\n", mode->name);
+		printf(" ---------------------------------------\n");
+		mode->print_help();
+	}
 }
 
 static void version_info(void)
@@ -24,63 +69,22 @@ static void version_info(void)
 	printf("Bus Spider v0\n");
 }
 
-extern void i2c_start(struct i2c_algo_bit_data *adap);
-extern void i2c_stop(struct i2c_algo_bit_data *adap);
-extern int try_address(struct i2c_algo_bit_data *adap,
-			unsigned char addr, int retries);
-
-extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
-
-static void i2c_scan(struct i2c_algo_bit_data *adap, int min, int max)
-{
-	uint8_t i;
-
-	printf("\n");
-	printf("   ");
-	for (i = 0; i < 0x10 ; i ++) {
-		printf("  %1x", i);
-	}
-	printf("\n");
-
-	for (i = 0; ; i ++) {
-		if (i % 0x10 == 0x00) {
-			printf("%02x: ", i);
-		}
-
-		if (i < (min << 1)) {
-			printf("   ");
-			continue;
-		}
-
-		i2c_stop(adap);
-		i2c_start(adap);
-		if (try_address(adap, i << 1, 1)) {
-			printf("%02x ", i);
-		} else {
-			printf("-- ");
-		}
-
-		if (i == max) {
-			printf("\n");
-			break;
-		}
-
-		if (i % 0x10 == 0xf) {
-			printf("\n");
-		}
-	}
-
-	i2c_stop(adap);
-}
-
 static void bus_spider(void)
 {
+	static char prompt[16];
+	static const char *PROMPT_PS2 = "> ";
+
 	char cmdbuf[100];
 	int stop;
 	int cmderror;
 	char *curchar;
+	char *t;
 
-	readline("HiZ> ", cmdbuf, 100);
+	t = mode->name ? mode->name : "";
+	strncpy(prompt, t, sizeof(prompt));
+
+	strncat(prompt, PROMPT_PS2, sizeof(prompt) - strlen(PROMPT_PS2));
+	readline(prompt, cmdbuf, sizeof(cmdbuf));
 
 	stop = 0;
 	cmderror = 0;
@@ -101,6 +105,10 @@ static void bus_spider(void)
 			version_info();
 			break;
 
+		case 'm':
+			change_mode();
+			break;
+
 		case '#': /* Reset */
 		case '$':
 			{
@@ -109,41 +117,6 @@ static void bus_spider(void)
 				reboot = (void *)0x00000000;
 				reboot();
 			}
-			break;
-
-		case 'S':
-			i2c_scan(i2c0, 0x01, 0x77);
-			break;
-
-		case '[':
-			i2c_proto_start(i2c0);
-			break;
-
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			{
-				unsigned int t;
-				char *endp;
-
-				t = simple_strtoul(curchar, &endp, 0);
-				t &= 0xff;
-
-				i2c_proto_write(i2c0, t);
-
-				curchar = endp;
-			}
-			break;
-
-		case 'r':
-			i2c_proto_read(i2c0);
 			break;
 
 		case 'v':
@@ -160,10 +133,6 @@ static void bus_spider(void)
 			}
 			break;
 
-		case ']':
-			i2c_proto_stop(i2c0);
-			break;
-
 		case 0:
 			stop = 1;
 			break;
@@ -173,7 +142,14 @@ static void bus_spider(void)
 			break;
 
 		default:
-			cmderror = 1;
+			if (mode->parse_cmdline) {
+				curchar = mode->parse_cmdline(curchar);
+				if (!curchar) {
+					cmderror = 1;
+				}
+			} else {
+				cmderror = 1;
+			}
 		}
 
 		if (cmderror) {
@@ -186,11 +162,15 @@ static void bus_spider(void)
 	}
 }
 
-extern struct i2c_algo_bit_data *init_i2c0(void);
-
 void bus_spider_main(void)
 {
-	i2c0 = init_i2c0();
+	extern struct mode hiz_mode;
+	extern struct mode i2c_mode;
+
+	register_mode(&hiz_mode);
+	register_mode(&i2c_mode);
+
+	select_mode(&hiz_mode);
 
 	while (1) {
 		bus_spider();
