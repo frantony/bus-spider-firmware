@@ -10,7 +10,7 @@ struct mode {
 	int (*close)(void);
 
 	char *(*parse_cmdline)(char *curchar);
-	int (*print_help)(void);
+	void (*print_help)(void);
 
 	struct list_head list;
 };
