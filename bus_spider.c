@@ -23,7 +23,7 @@ static void select_mode(struct mode *new_mode)
 static void change_mode(void)
 {
 	struct mode *t;
-	int i;
+	unsigned int i;
 	char modebuf[8];
 	unsigned int moden;
 
