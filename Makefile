@@ -51,6 +51,7 @@ bus_spider: startup.o main.o \
 		i2c-algo-bit.o \
 		hiz_mode.o \
 		i2c_mode.o \
+		spi_mode.o spi0.o \
 		i2c0.o bus_spider.o
 	$(LD) \
 		-Map $@.map \

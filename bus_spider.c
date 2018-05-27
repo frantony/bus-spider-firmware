@@ -166,9 +166,11 @@ void bus_spider_main(void)
 {
 	extern struct mode hiz_mode;
 	extern struct mode i2c_mode;
+	extern struct mode spi_mode;
 
 	register_mode(&hiz_mode);
 	register_mode(&i2c_mode);
+	register_mode(&spi_mode);
 
 	select_mode(&hiz_mode);
 
