@@ -3,6 +3,8 @@
 
 #include "bus_spider.h"
 
+static uint32_t *gpio0_dirout = (uint32_t *)0x91000004;
+
 static struct mode *mode;
 static LIST_HEAD(mode_list);
 
@@ -55,6 +57,8 @@ static void print_help(void)
 	printf(" m\tChange mode\n");
 	printf(" $\tJump to bootloader\n");
 	printf(" i\tVersioninfo/statusinfo\n");
+	printf(" p/P\tPullup resistors (off/ON)\n");
+	printf(" w/W\tPSU (off/ON)\n");
 	printf(" v\tShow states\n");
 
 	if (mode->print_help) {
@@ -67,6 +71,38 @@ static void print_help(void)
 static void version_info(void)
 {
 	printf("Bus Spider v0\n");
+}
+
+static void pullup(int state)
+{
+	uint32_t *gpio0_dat = (uint32_t *)0x91000000;
+	uint32_t t;
+
+	t = readl(gpio0_dat);
+
+	if (state) {
+		t |= 0x40;
+	} else {
+		t &= ~0x40;
+	}
+
+	writel(t, gpio0_dat);
+}
+
+static void pwr3v3(int state)
+{
+	uint32_t *gpio0_dat = (uint32_t *)0x91000000;
+	uint32_t t;
+
+	t = readl(gpio0_dat);
+
+	if (state) {
+		t |= 0x80;
+	} else {
+		t &= ~0x80;
+	}
+
+	writel(t, gpio0_dat);
 }
 
 static void bus_spider(void)
@@ -119,6 +155,22 @@ static void bus_spider(void)
 			}
 			break;
 
+		case 'P':
+			pullup(1);
+			break;
+
+		case 'p':
+			pullup(0);
+			break;
+
+		case 'W':
+			pwr3v3(1);
+			break;
+
+		case 'w':
+			pwr3v3(0);
+			break;
+
 		case 'v':
 			{
 				const uint32_t *gpio0_dat = (uint32_t *)0x91000000;
@@ -168,11 +220,16 @@ void bus_spider_main(void)
 	extern struct mode i2c_mode;
 	extern struct mode spi_mode;
 
+	uint32_t t;
+
 	register_mode(&hiz_mode);
 	register_mode(&i2c_mode);
 	register_mode(&spi_mode);
 
 	select_mode(&hiz_mode);
+
+	t = readl(gpio0_dirout);
+	writel(t | 0xc0, gpio0_dirout);
 
 	while (1) {
 		bus_spider();
