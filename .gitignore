@@ -1,4 +1,5 @@
 *.o
+*.d
 embedded.lds
 bus_spider
 bus_spider.bin
