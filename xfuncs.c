@@ -18,7 +18,12 @@
  * GNU General Public License for more details.
  *
  */
+
+#include <xfuncs.h>
+#include <stdio.h>
+#include <string.h>
 #include <malloc.h>
+#include <linux/export.h>
 
 static void enomem_panic(size_t size)
 {
