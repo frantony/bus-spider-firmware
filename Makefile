@@ -5,15 +5,21 @@ BINARY = bus_spider
 all: $(BINARY).bin
 .PHONY: all
 
-SRCFILES = startup.S main.c \
-	tlsf.c tlsf_malloc.c memory.c \
-	ctype.c string.c strtox.c vsprintf.c console_common.c \
-	readkey.c readline.c \
-	clock.c riscv_timer.c \
-	div.S div64.c clz_ctz.c mulsi3.c muldi3.c ashldi3.c lshrdi3.c \
-	memtest.c \
-	xfuncs.c \
-	libbb.c \
+SRCFILES = \
+	arch/riscv/startup.S \
+	main.c \
+	common/tlsf.c common/tlsf_malloc.c common/memory.c \
+	common/console_common.c \
+	lib/ctype.c lib/string.c lib/strtox.c lib/vsprintf.c \
+	lib/readkey.c lib/readline.c \
+	common/clock.c \
+	arch/riscv/riscv_timer.c \
+	arch/riscv/div.S \
+	lib/div64.c lib/clz_ctz.c \
+	lib/ashldi3.c lib/lshrdi3.c lib/muldi3.c lib/mulsi3.c \
+	common/memtest.c \
+	lib/xfuncs.c \
+	lib/libbb.c \
 	bus_spider.c \
 	hiz_mode.c \
 	i2c-algo-bit.c \
