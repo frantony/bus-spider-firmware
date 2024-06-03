@@ -3,6 +3,7 @@
 #include <readkey.h>
 #include <linux/ctype.h>
 #include <linux/export.h>
+#include <linux/list.h>
 
 /*
  * cmdline-editing related codes from vivi.
@@ -20,6 +21,88 @@
 #define getcmd_putch(ch)	putchar(ch)
 #define getcmd_getch()		getc()
 #define getcmd_cbeep()		getcmd_putch('\a')
+
+struct history {
+	char *line;
+	struct list_head list;
+};
+
+static LIST_HEAD(history_list);
+
+static struct list_head *history_current;
+static int history_num_entries;
+
+static void cread_add_to_hist(char *line)
+{
+	struct history *history;
+	char *newline;
+
+	if (!list_empty(&history_list)) {
+		history = list_last_entry(&history_list, struct history, list);
+
+		if (!strcmp(line, history->line))
+			return;
+	}
+
+	newline = strdup(line);
+	if (!newline)
+		return;
+
+	if (history_num_entries < 32) {
+		history = xzalloc(sizeof(*history));
+		history_num_entries++;
+	} else {
+		history = list_first_entry(&history_list, struct history, list);
+		free(history->line);
+		list_del(&history->list);
+	}
+
+	history->line = newline;
+
+	list_add_tail(&history->list, &history_list);
+}
+
+static const char *hist_prev(void)
+{
+	struct history *history;
+
+	if (history_current->prev == &history_list) {
+		getcmd_cbeep();
+
+		if (list_empty(&history_list))
+			return "";
+
+		history = list_entry(history_current, struct history, list);
+		return history->line;
+	}
+
+	history = list_entry(history_current->prev, struct history, list);
+
+	history_current = &history->list;
+
+	return history->line;
+}
+
+static const char *hist_next(void)
+{
+	struct history *history;
+
+	if (history_current->next == &history_list) {
+		history_current = &history_list;
+		return "";
+	}
+
+	if (history_current == &history_list) {
+		getcmd_cbeep();
+		return "";
+	}
+
+	history = list_entry(history_current->next, struct history, list);
+
+	history_current = &history->list;
+
+	return history->line;
+}
 
 #define BEGINNING_OF_LINE() {			\
 	while (num) {				\
@@ -101,6 +184,8 @@ int readline(const char *prompt, char *buf, int len)
 	unsigned wlen;
 	int ichar;
 	int insert = 1;
+
+	history_current = &history_list;
 
 	puts (prompt);
 
@@ -190,6 +275,29 @@ int readline(const char *prompt, char *buf, int len)
 				eol_num--;
 			}
 			break;
+		case BB_KEY_UP:
+		case BB_KEY_DOWN:
+		{
+			const char *hline;
+
+			if (ichar == BB_KEY_UP)
+				hline = hist_prev();
+			else
+				hline = hist_next();
+
+			/* nuke the current line */
+			/* first, go home */
+			BEGINNING_OF_LINE();
+
+			/* erase to end of line */
+			ERASE_TO_EOL();
+
+			/* copy new line into place and display */
+			safe_strncpy(buf, hline, len);
+			eol_num = strlen(buf);
+			REFRESH_TO_EOL();
+			continue;
+		}
 		case CTL_CH('w'):
 			while ((num >= 1) && (buf[num - 1] == ' ')) {
 				DO_BACKSPACE();
@@ -208,6 +316,9 @@ int readline(const char *prompt, char *buf, int len)
 	}
 	len = eol_num;
 	buf[eol_num] = '\0';	/* lose the newline */
+
+	if (buf[0])
+		cread_add_to_hist(buf);
 
 	return len;
 }
