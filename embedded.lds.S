@@ -18,7 +18,10 @@
 #include <config.h>
 
 OUTPUT_ARCH(riscv)
+OUTPUT_FORMAT(elf32-littleriscv)
+
 ENTRY(_start)
+
 SECTIONS
 {
 	. = TEXT_BASE;

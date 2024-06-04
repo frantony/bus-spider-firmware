@@ -1,5 +1,5 @@
 # Makefile for Bus Spider firmware for erizo board
-CROSS_COMPILE=/opt/riscv32imc/bin/riscv32-unknown-elf-
+CROSS_COMPILE=riscv64-linux-gnu-
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
@@ -12,6 +12,7 @@ CFLAGS = -W -Wall
 CFLAGS += -fno-pic -pipe
 
 CFLAGS += -march=rv32imc
+CFLAGS += -mabi=ilp32
 CFLAGS += -mcmodel=medany
 CFLAGS += -Os
 
@@ -60,7 +61,7 @@ bus_spider: startup.o main.o \
 		-nostdlib --no-dynamic-linker -static --gc-sections \
 		-o $@ \
 		-T embedded.lds \
-		--start-group $^ --end-group
+		--start-group $(filter-out embedded.lds,$^) --end-group
 
 %.o: %.S
 	$(CC) -c $(CFLAGS) $<
