@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <linux/types.h>
+#include <linux/string.h>
 #include <linux/export.h>
 
 /* Like strncpy but make sure the resulting string is always 0 terminated. */
